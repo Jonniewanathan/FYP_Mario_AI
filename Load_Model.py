@@ -25,7 +25,7 @@ class Env(object):
             new_number = 0
 
     def run(self):
-        classifier = keras.models.load_model(os.getcwd() + "/models/model_732.0")
+        classifier = keras.models.load_model(os.getcwd() + "/models/model_fitness_2591_generation_99_population_index_99.sav")
         action = 0
         old_x_pos = 10000000
         for step in range(5000):
@@ -36,7 +36,7 @@ class Env(object):
             state, reward, self.done, info = self.env.step(action)
             self.env.render()
             image = self.env.render('rgb_array')
-            image = cv2.resize(image, dsize=(32, 30), interpolation=cv2.INTER_CUBIC)
+            image = cv2.resize(image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
             image = np.expand_dims(image, axis=0)
             action = np.argmax(classifier.predict(image))
             # action = self.calculateaction(action, SIMPLE_MOVEMENT)
@@ -54,7 +54,7 @@ class Env(object):
 
 def runner():
     env = gym_super_mario_bros.make('SuperMarioBros-v0')
-    env = BinarySpaceToDiscreteSpaceEnv(env, SIMPLE_MOVEMENT)
+    env = BinarySpaceToDiscreteSpaceEnv(env, COMPLEX_MOVEMENT)
     env = Env(env)
     env.run()
 

@@ -10,14 +10,14 @@ import sys
 import os
 import cv2
 
-load = True
+load = False
 
 brain = Brain()
-brain.action_list = SIMPLE_MOVEMENT
+brain.action_list = COMPLEX_MOVEMENT
 if not load:
     brain.create_brain_q((60, 64))
 else:
-    brain.load_model('model_fitness_1847_generation_99_population_index_99.sav', os.getcwd() + "/models/")
+    brain.load_model('model_fitness_4208_generation_99_population_index_99.sav', os.getcwd() + "/models/")
 brain.generation_num = 99
 brain.index = 99
 fitness_list = []
@@ -36,7 +36,7 @@ environments_mario = ["SuperMarioBros-v0",
                      "SuperMarioBros2NoFrameskip-v1"]
 
 movements = [COMPLEX_MOVEMENT, SIMPLE_MOVEMENT, RIGHT_ONLY]
-movement = movements[1]
+movement = movements[0]
 
 
 def create_environment(_env, movement_set):
@@ -77,14 +77,14 @@ def run(model, env, iterations):
     fitness_list.append(brain.fitness)
 
 
-num_episodes = 500
-
+num_episodes = 300
+best_fitness = 0
 y = 0.99
-eps = 0.5
+eps = 0.6
 decay_factor = 0.999
 r_avg_list = []
+env = create_environment(environments_mario[0], movement)
 for i in range(num_episodes):
-    env = create_environment(environments_mario[0], movement)
     s = env.reset()
     eps *= decay_factor
     print("Episode {} of {}".format(i + 1, num_episodes))
@@ -94,39 +94,43 @@ for i in range(num_episodes):
     r_sum = 0
     step = 0
     old_x_pos = sys.maxsize
+    image = env.render('rgb_array')
+    image = cv2.resize(image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
+    image = np.expand_dims(image, axis=0)
     while not done:
         # env.render()
-        image = env.render('rgb_array')
-        image = cv2.resize(image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
-        image = np.expand_dims(image, axis=0)
         if np.random.random() < eps:
-            a = np.random.randint(0, 7)
+            a = np.random.randint(0, 12)
         else:
             a = np.argmax(brain.model.predict(image))
         new_s, r, done, info = env.step(a)
+        new_image = env.render('rgb_array')
+        new_image = cv2.resize(new_image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
+        new_image = np.expand_dims(new_image, axis=0)
         if step % 60 == 0:
             if info['x_pos'] == old_x_pos:
                 done = True
                 old_x_pos = sys.maxsize
-                r = -15
+                # r = -15
             else:
                 old_x_pos = info['x_pos']
         step += 1
-        target = r + y * np.max(brain.model.predict(image))
+        target = r + y * np.max(brain.model.predict(new_image))
         target_vec = brain.model.predict(image)[0]
         target_vec[a] = target
         print(target_vec)
-        brain.model.fit(image, target_vec.reshape(-1, 7), epochs=1, verbose=1)
+        brain.model.fit(image, target_vec.reshape(-1, 12), epochs=1, verbose=1)
+        image = new_image
         s = new_s
         r_sum += r
         target_vec = None
     r_avg_list.append(r_sum)
-    env.close()
-    if brain.fitness < r_sum:
-        brain.fitness = r_sum
+    env.reset()
+    # env.close()
+    brain.fitness = r_sum
+    if best_fitness < r_sum:
+        best_fitness = r_sum
         brain.save_model('models/')
-    else:
-        brain.fitness = r_sum
 
 
 print(fitness_list)
