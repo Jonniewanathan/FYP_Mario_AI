@@ -58,3 +58,18 @@ COMPLEX_MOVEMENT = [
     ['down'],               # 010000
     ['up'],                 # 100000
 ]
+
+NEW_COMPLEX_MOVEMENT = [
+    ['NOP'],
+    ['right'],
+    ['right', 'A'],
+    ['right', 'B'],
+    ['right', 'A', 'B'],
+    ['A'],
+    ['left'],
+    ['left', 'A'],
+    ['left', 'B'],
+    ['left', 'A', 'B'],
+    ['down'],
+    ['up'],
+]

@@ -4,16 +4,21 @@ import gym_super_mario_bros
 from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from gym_super_mario_bros.actions import RIGHT_ONLY
+from acions import NEW_COMPLEX_MOVEMENT
 
 from Brain import Brain
 import sys
 import os
 import cv2
+movements = [NEW_COMPLEX_MOVEMENT, COMPLEX_MOVEMENT, SIMPLE_MOVEMENT, RIGHT_ONLY]
+movement = movements[3]
+num_movement = len(movement)
+
 
 load = False
 
 brain = Brain()
-brain.action_list = COMPLEX_MOVEMENT
+brain.action_list = movement
 if not load:
     brain.create_brain_q((60, 64))
 else:
@@ -35,8 +40,7 @@ environments_mario = ["SuperMarioBros-v0",
                      "SuperMarioBros2NoFrameskip-v0",
                      "SuperMarioBros2NoFrameskip-v1"]
 
-movements = [COMPLEX_MOVEMENT, SIMPLE_MOVEMENT, RIGHT_ONLY]
-movement = movements[0]
+
 
 
 def create_environment(_env, movement_set):
@@ -77,19 +81,20 @@ def run(model, env, iterations):
     fitness_list.append(brain.fitness)
 
 
-num_episodes = 300
+num_episodes = 5000
 best_fitness = 0
-y = 0.99
-eps = 0.6
+y = 0.95
+eps = 0.7
 decay_factor = 0.999
 r_avg_list = []
 env = create_environment(environments_mario[0], movement)
 for i in range(num_episodes):
     s = env.reset()
     eps *= decay_factor
+    if eps < 0.1:
+        eps = 0.1
+    print("EPS value: " + str(eps))
     print("Episode {} of {}".format(i + 1, num_episodes))
-    if i % 100 == 0:
-        print("Episode {} of {}".format(i + 1, num_episodes))
     done = False
     r_sum = 0
     step = 0
@@ -97,13 +102,14 @@ for i in range(num_episodes):
     image = env.render('rgb_array')
     image = cv2.resize(image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
     image = np.expand_dims(image, axis=0)
+    a = np.random.randint(0, num_movement)
     while not done:
         # env.render()
         if np.random.random() < eps:
-            a = np.random.randint(0, 12)
+            new_a = np.random.randint(1, num_movement)
         else:
-            a = np.argmax(brain.model.predict(image))
-        new_s, r, done, info = env.step(a)
+            new_a = np.argmax(brain.model.predict(image))
+        new_s, r, done, info = env.step(new_a)
         new_image = env.render('rgb_array')
         new_image = cv2.resize(new_image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
         new_image = np.expand_dims(new_image, axis=0)
@@ -111,26 +117,38 @@ for i in range(num_episodes):
             if info['x_pos'] == old_x_pos:
                 done = True
                 old_x_pos = sys.maxsize
-                # r = -15
             else:
                 old_x_pos = info['x_pos']
         step += 1
-        target = r + y * np.max(brain.model.predict(new_image))
+        if info['time'] < 320 and r_sum < 300:
+            done = True
+        # target = r + y * np.max(brain.model.predict(new_image))
+        if r < 1:
+            target = 0
+        else:
+            target = 1
         target_vec = brain.model.predict(image)[0]
+        print(target_vec)
+        target_vec = np.zeros(num_movement)
         target_vec[a] = target
         print(target_vec)
-        brain.model.fit(image, target_vec.reshape(-1, 12), epochs=1, verbose=1)
+        print("Action: " + str(a))
+        print("Reward: " + str(r))
+        brain.model.fit(image, target_vec.reshape(-1, num_movement), epochs=3, verbose=1)
         image = new_image
         s = new_s
+        a = new_a   # swapping current action with the new action
         r_sum += r
         target_vec = None
     r_avg_list.append(r_sum)
     env.reset()
     # env.close()
     brain.fitness = r_sum
+    print(str(i) + " FITNESS: " + str(r_sum))
+    brain.save_model('models/')
     if best_fitness < r_sum:
         best_fitness = r_sum
-        brain.save_model('models/')
+    print("Current BEST: " + str(best_fitness))
 
 
 print(fitness_list)

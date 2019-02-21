@@ -25,7 +25,8 @@ class Env(object):
             new_number = 0
 
     def run(self):
-        classifier = keras.models.load_model(os.getcwd() + "/models/model_fitness_2591_generation_99_population_index_99.sav")
+        file_name = "model_fitness_517_generation_99_population_index_99.sav"
+        classifier = keras.models.load_model(os.getcwd() + "/models/" + file_name)
         action = 0
         old_x_pos = 10000000
         for step in range(5000):
@@ -38,6 +39,7 @@ class Env(object):
             image = self.env.render('rgb_array')
             image = cv2.resize(image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
             image = np.expand_dims(image, axis=0)
+            print(classifier.predict(image))
             action = np.argmax(classifier.predict(image))
             # action = self.calculateaction(action, SIMPLE_MOVEMENT)
             print(action)
@@ -54,7 +56,7 @@ class Env(object):
 
 def runner():
     env = gym_super_mario_bros.make('SuperMarioBros-v0')
-    env = BinarySpaceToDiscreteSpaceEnv(env, COMPLEX_MOVEMENT)
+    env = BinarySpaceToDiscreteSpaceEnv(env, SIMPLE_MOVEMENT)
     env = Env(env)
     env.run()
 

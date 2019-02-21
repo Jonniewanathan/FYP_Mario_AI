@@ -46,9 +46,9 @@ class Brain:
         self.add_conv2d_layer(64, 'relu', input_shape)
         self.model.add(Dense(10, activation='relu'))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(12, activation='softmax'))
+        self.model.add(Dense(len(self.action_list), activation='softmax'))
         # sgd = SGD(lr=0.09, decay=1e-6, momentum=0.9, nesterov=True)
-        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'accuracy'])
+        self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         # self.model.compile(loss='mse', optimizer='adam', metrics=['mae', 'accuracy'])
 
     def create_brain(self, image_shape):
