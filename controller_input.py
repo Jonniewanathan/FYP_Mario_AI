@@ -24,9 +24,8 @@ def gamepad_buttons(csv_writer, directory):
 
         events = 12
 
-        # image_directory = directory + "\\" + str(counter) + ".png"
-        # image_directory = str(counter) + ".png"
         image = screenshot.grab(bbox=(0, 56, 1172, 898))
+
         while events is not None and done:
             try:
                 events = get_gamepad(False)
@@ -86,7 +85,7 @@ if __name__ == '__main__':
     #     if key_events:
     #         for key in key_events:
     #             print(key.ev_type, key.code, key.state)
-    directory = os.getcwd() + "\\capture_" + str(datetime.date.today()) + str(time.time())
+    directory = os.getcwd() + "\\dateset_not_cleaned\\capture_" + str(datetime.date.today()) + str(time.time())
     if not os.path.isdir(directory):
         os.makedirs(directory)
 

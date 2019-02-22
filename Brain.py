@@ -43,7 +43,16 @@ class Brain:
 
         self.model = Sequential()
         # Input
-        self.add_conv2d_layer(64, 'relu', input_shape)
+        self.model.add(Conv2D(64, (3, 3), input_shape=input_shape, activation='relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Conv2D(64, (3, 3), input_shape=input_shape, activation='relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Conv2D(64, (3, 3), input_shape=input_shape, activation='relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Flatten())
         self.model.add(Dense(10, activation='relu'))
         self.model.add(Dropout(0.3))
         self.model.add(Dense(len(self.action_list), activation='softmax'))

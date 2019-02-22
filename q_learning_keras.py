@@ -41,8 +41,6 @@ environments_mario = ["SuperMarioBros-v0",
                      "SuperMarioBros2NoFrameskip-v1"]
 
 
-
-
 def create_environment(_env, movement_set):
     environment = gym_super_mario_bros.make(_env)
     environment = BinarySpaceToDiscreteSpaceEnv(environment, movement_set)
@@ -50,32 +48,37 @@ def create_environment(_env, movement_set):
     return environment
 
 
-def run(model, env, iterations):
-    for num in range(iterations):
-        env.reset()
-        step = 0
-        action = 0
-        old_x_pos = sys.maxsize
-        fitness = []
-        done = False
-        while not done:
-            state, reward, done, info = env.step(action)
-            fitness.append(reward)
-            env.render()
-            display = env.render('rgb_array')
-            display = np.expand_dims(display, axis=0)
-            action = np.argmax(brain.model.predict(display))
-            # print(action)
-            # print(info)
-            # print(reward)
-            if step % 120 == 0:
-                if info['x_pos'] == old_x_pos:
-                    done = True
-                    old_x_pos = sys.maxsize
-                else:
-                    old_x_pos = info['x_pos']
-            step += 1
-        brain.fitness = sum(fitness)
+def normalize(x, min, max):
+    y = (x - min) / (max - min)
+    return y
+
+
+def run(brain, env):
+    env.reset()
+    step = 0
+    action = 0
+    old_x_pos = sys.maxsize
+    fitness = []
+    done = False
+    while not done:
+        state, reward, done, info = env.step(action)
+        fitness.append(reward)
+        env.render()
+        image = env.render('rgb_array')
+        image = cv2.resize(image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
+        image = np.expand_dims(image, axis=0)
+        action = np.argmax(brain.model.predict(image))
+        # print(action)
+        # print(info)
+        # print(reward)
+        if step % 120 == 0:
+            if info['x_pos'] == old_x_pos:
+                done = True
+                old_x_pos = sys.maxsize
+            else:
+                old_x_pos = info['x_pos']
+        step += 1
+    brain.fitness = sum(fitness)
     env.close()
     print("Fitness %d" % brain.fitness)
     fitness_list.append(brain.fitness)
@@ -87,8 +90,10 @@ y = 0.95
 eps = 0.7
 decay_factor = 0.999
 r_avg_list = []
-env = create_environment(environments_mario[0], movement)
+inputs = []
+outputs = []
 for i in range(num_episodes):
+    env = create_environment(environments_mario[0], movement)
     s = env.reset()
     eps *= decay_factor
     if eps < 0.1:
@@ -123,10 +128,7 @@ for i in range(num_episodes):
         if info['time'] < 320 and r_sum < 300:
             done = True
         # target = r + y * np.max(brain.model.predict(new_image))
-        if r < 1:
-            target = 0
-        else:
-            target = 1
+        target = normalize(r, -15, 15)
         target_vec = brain.model.predict(image)[0]
         print(target_vec)
         target_vec = np.zeros(num_movement)
@@ -134,7 +136,20 @@ for i in range(num_episodes):
         print(target_vec)
         print("Action: " + str(a))
         print("Reward: " + str(r))
-        brain.model.fit(image, target_vec.reshape(-1, num_movement), epochs=3, verbose=1)
+        brain.model.fit(image, target_vec.reshape(-1, num_movement), epochs=1, verbose=1)
+        # exists = False
+        # for item in inputs:
+        #     exists = np.array_equal(image[0], item)
+        # if exists:
+        #     # index = inputs.index()
+        #     for num in range(len(inputs)):
+        #         if np.array_equal(image[0], inputs[num]):
+        #             index = num
+        #             outputs[index][a] = target
+        #             print("I'm changing an old value")
+        # else:
+        inputs.append(image[0])
+        outputs.append(target_vec)
         image = new_image
         s = new_s
         a = new_a   # swapping current action with the new action
@@ -142,13 +157,19 @@ for i in range(num_episodes):
         target_vec = None
     r_avg_list.append(r_sum)
     env.reset()
-    # env.close()
+    env.close()
     brain.fitness = r_sum
     print(str(i) + " FITNESS: " + str(r_sum))
     brain.save_model('models/')
     if best_fitness < r_sum:
         best_fitness = r_sum
     print("Current BEST: " + str(best_fitness))
+    brain.model.fit(np.asarray(inputs), np.asarray(outputs), epochs=10, verbose=1)
+    test_env = create_environment(environments_mario[0], movement)
+    run(brain, test_env)
+    inputs = []
+    outputs = []
+
 
 
 print(fitness_list)
