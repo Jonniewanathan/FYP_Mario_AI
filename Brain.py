@@ -1,9 +1,9 @@
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D
-from keras.layers import Flatten, Dense, Dropout
+from keras.layers import Flatten, Dense, Dropout, Activation
 import keras
 import random
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 import numpy as np
 
 
@@ -59,6 +59,40 @@ class Brain:
         # sgd = SGD(lr=0.09, decay=1e-6, momentum=0.9, nesterov=True)
         self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         # self.model.compile(loss='mse', optimizer='adam', metrics=['mae', 'accuracy'])
+
+    def create_conv_q_brain(self, input_shape):
+        optimizer = Adam(lr=0.001)
+        objective = 'binary_crossentropy'
+
+        self.model = Sequential()
+
+        self.model.add(Conv2D(32, 3, 3, border_mode='same', input_shape=input_shape, activation='relu'))
+        self.model.add(Conv2D(32, 3, 3, border_mode='same', activation='relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Conv2D(64, 3, 3, border_mode='same', activation='relu'))
+        self.model.add(Conv2D(64, 3, 3, border_mode='same', activation='relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Conv2D(128, 3, 3, border_mode='same', activation='relu'))
+        self.model.add(Conv2D(128, 3, 3, border_mode='same', activation='relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Conv2D(256, 3, 3, border_mode='same', activation='relu'))
+        self.model.add(Conv2D(256, 3, 3, border_mode='same', activation='relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Flatten())
+        self.model.add(Dense(256, activation='relu'))
+        self.model.add(Dropout(0.5))
+
+        self.model.add(Dense(256, activation='relu'))
+        self.model.add(Dropout(0.5))
+
+        self.model.add(Dense(len(self.action_list)))
+        self.model.add(Activation('sigmoid'))
+
+        self.model.compile(loss=objective, optimizer=optimizer, metrics=['accuracy'])
 
     def create_brain(self, image_shape):
         input_shape = (image_shape[0], image_shape[1], 3)

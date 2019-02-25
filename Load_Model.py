@@ -25,7 +25,7 @@ class Env(object):
             new_number = 0
 
     def run(self):
-        file_name = "model_fitness_517_generation_99_population_index_99.sav"
+        file_name = "model_fitness_1668_generation_99_population_index_99.sav"
         classifier = keras.models.load_model(os.getcwd() + "/models/" + file_name)
         action = 0
         old_x_pos = 10000000

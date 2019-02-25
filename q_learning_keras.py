@@ -66,6 +66,7 @@ def run(brain, env):
         env.render()
         image = env.render('rgb_array')
         image = cv2.resize(image, dsize=(64, 60), interpolation=cv2.INTER_CUBIC)
+        image = cv2.COLOR_BGR2BGR565(image)
         image = np.expand_dims(image, axis=0)
         action = np.argmax(brain.model.predict(image))
         # print(action)
@@ -90,6 +91,9 @@ y = 0.95
 eps = 0.7
 decay_factor = 0.999
 r_avg_list = []
+# inputs = np.zeros((1500, 60, 64, 3))
+# test_input = np.zeros((60, 64, 3))
+# outputs = np.zeros((1500, num_movement))
 inputs = []
 outputs = []
 for i in range(num_episodes):
@@ -124,19 +128,19 @@ for i in range(num_episodes):
                 old_x_pos = sys.maxsize
             else:
                 old_x_pos = info['x_pos']
-        step += 1
+
         if info['time'] < 320 and r_sum < 300:
             done = True
         # target = r + y * np.max(brain.model.predict(new_image))
         target = normalize(r, -15, 15)
         target_vec = brain.model.predict(image)[0]
         print(target_vec)
-        target_vec = np.zeros(num_movement)
+        # target_vec = np.zeros(num_movement)
         target_vec[a] = target
         print(target_vec)
         print("Action: " + str(a))
         print("Reward: " + str(r))
-        brain.model.fit(image, target_vec.reshape(-1, num_movement), epochs=1, verbose=1)
+        # brain.model.fit(image, target_vec.reshape(-1, num_movement), epochs=1, verbose=0)
         # exists = False
         # for item in inputs:
         #     exists = np.array_equal(image[0], item)
@@ -148,13 +152,17 @@ for i in range(num_episodes):
         #             outputs[index][a] = target
         #             print("I'm changing an old value")
         # else:
-        inputs.append(image[0])
-        outputs.append(target_vec)
+        if len(outputs) > step and len(outputs) != 0:
+            outputs[step][a] = target
+            inputs[step] = image[0]
+        else:
+            outputs.append(target_vec)
+            inputs.append(image[0])
         image = new_image
         s = new_s
         a = new_a   # swapping current action with the new action
         r_sum += r
-        target_vec = None
+        step += 1
     r_avg_list.append(r_sum)
     env.reset()
     env.close()
@@ -167,10 +175,8 @@ for i in range(num_episodes):
     brain.model.fit(np.asarray(inputs), np.asarray(outputs), epochs=10, verbose=1)
     test_env = create_environment(environments_mario[0], movement)
     run(brain, test_env)
-    inputs = []
-    outputs = []
-
-
+    # outputs = []
+    # inputs = []
 
 print(fitness_list)
 print(r_avg_list)
