@@ -21,6 +21,7 @@ from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from gym_super_mario_bros.actions import RIGHT_ONLY
 import os
+from animation import videofig
 
 directory = "./models/mario_DDQN_NEW/"
 
@@ -174,13 +175,13 @@ pretrain_length = 80000   # Number of experiences stored in the Memory when init
 memory_size = 80000      # Number of experiences the Memory can keep
 
 ### MODIFY THIS TO FALSE IF YOU JUST WANT TO SEE THE TRAINED AGENT
-training = True
+training = False
 
 ## TURN THIS TO TRUE IF YOU WANT TO RENDER THE ENVIRONMENT
 ## episode_render renders each episode
-## episode_render_10 renders every 100 episodes without any random exploration
+## episode_render_10 renders every 10 episodes without any random exploration
 episode_render = True
-episode_render_10 = False
+episode_render_10 = True
 
 class DDDQNNet:
     def __init__(self, state_size, action_size, learning_rate, name):
@@ -868,6 +869,15 @@ if training == True:
                     wr = csv.writer(myfile, dialect='myDialect')
                     wr.writerow([episode,total_episode_rewards])
 
+image_animation = []
+def redraw_fn(f, axes):
+    img = image_animation[f]
+    if not redraw_fn.initialized:
+        redraw_fn.im = axes.imshow(img, animated=True, cmap='gray')
+        redraw_fn.initialized = True
+    else:
+        redraw_fn.im.set_array(img)
+
 with tf.Session() as sess:
     total_test_rewards = []
 
@@ -899,6 +909,8 @@ with tf.Session() as sess:
             x = env.unwrapped._left_x_position - offset
             y = env.unwrapped._y_position - offset
             
+            image_animation.append(process_image(next_state, x, y, h, w))
+            
             env.render()
             
             total_rewards += reward
@@ -906,6 +918,8 @@ with tf.Session() as sess:
             if done:
                 print("Score", total_rewards)
                 total_test_rewards.append(total_rewards)
+                redraw_fn.initialized = False
+                videofig(len(image_animation), redraw_fn, play_fps=30)
                 total_rewards = 0
                 env.reset()
 
